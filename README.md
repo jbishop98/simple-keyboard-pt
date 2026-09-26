@@ -15,6 +15,7 @@ Features:
 - Swipe space to move pointer
 - Delete swipe
 - Custom theme colors
+- Optional word suggestions, fully offline (off by default)
 - Minimal permissions (only Vibrate)
 - Ads-free
 
@@ -23,6 +24,26 @@ Feature it doesn't have and probably will never have:
 - GIFs
 - Spell checker
 - Swipe typing
+
+## Word suggestions
+
+Turn on in Settings > Word suggestions. A strip above the keys shows up to three words
+that complete what you are typing; tap one to insert it. Nothing is ever corrected
+automatically.
+
+- Runs entirely on the device. The app has no internet permission.
+- English is included. For other languages, import a word list in the same settings screen:
+  plain text (one word per line, optionally `word<TAB>frequency`) or an AOSP LatinIME
+  `*.combined` wordlist, optionally gzip-compressed.
+- "Learn from typing" remembers words you use and which word tends to follow which,
+  for better completions and next-word predictions. It never learns from password
+  fields or apps that ask for no learning (e.g. incognito tabs). Learned words are
+  kept in the app's private storage, excluded from Android backups, and can be
+  cleared at any time.
+
+The bundled English list (50,000 most common words, offensive words removed) is generated
+from the AOSP LatinIME `en_US` wordlist (Apache License 2.0) with
+`tools/make_dict.py`.
 
 ## Downloads
 

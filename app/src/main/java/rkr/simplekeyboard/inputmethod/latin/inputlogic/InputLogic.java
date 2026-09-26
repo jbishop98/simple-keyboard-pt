@@ -34,6 +34,7 @@ import rkr.simplekeyboard.inputmethod.latin.RichInputConnection;
 import rkr.simplekeyboard.inputmethod.latin.common.Constants;
 import rkr.simplekeyboard.inputmethod.latin.common.StringUtils;
 import rkr.simplekeyboard.inputmethod.latin.settings.SettingsValues;
+import rkr.simplekeyboard.inputmethod.latin.suggestions.WordUtils;
 import rkr.simplekeyboard.inputmethod.latin.utils.InputTypeUtils;
 import rkr.simplekeyboard.inputmethod.latin.utils.RecapitalizeStatus;
 import rkr.simplekeyboard.inputmethod.latin.utils.SubtypeLocaleUtils;
@@ -234,6 +235,7 @@ public final class InputLogic {
             final InputTransaction inputTransaction) {
         switch (event.mCodePoint) {
             case Constants.CODE_ENTER:
+                learnWordBeforeCursor(inputTransaction.mSettingsValues);
                 final EditorInfo editorInfo = getCurrentInputEditorInfo();
                 final int imeOptionsActionId =
                         InputTypeUtils.getImeOptionsActionIdFromEditorInfo(editorInfo);
@@ -298,9 +300,65 @@ public final class InputLogic {
      * @param inputTransaction The transaction in progress.
      */
     private void handleSeparatorEvent(final Event event, final InputTransaction inputTransaction) {
+        learnWordBeforeCursor(inputTransaction.mSettingsValues);
         sendKeyCodePoint(event.mCodePoint);
 
         inputTransaction.requireShiftUpdate(InputTransaction.SHIFT_UPDATE_NOW);
+    }
+
+    /**
+     * Finds the word being typed and the one before it, from the cached text around the cursor.
+     * @return the context, or null if suggestions do not apply at the cursor position.
+     */
+    public WordUtils.WordContext getWordContext() {
+        if (mConnection.hasSelection()) {
+            return null;
+        }
+        return WordUtils.getWordContext(mConnection.getTextBeforeCursor(),
+                mConnection.getTextAfterCursor());
+    }
+
+    /**
+     * Remembers the word right before the cursor, when the user finishes typing it.
+     */
+    private void learnWordBeforeCursor(final SettingsValues settingsValues) {
+        if (!settingsValues.shouldLearnWords()) {
+            return;
+        }
+        final WordUtils.WordContext context = getWordContext();
+        if (context != null && !context.mPartialWord.isEmpty()) {
+            mLatinIME.mSuggestionController.learn(context.mPreviousWord, context.mPartialWord);
+        }
+    }
+
+    /**
+     * Replaces the word being typed with a picked suggestion.
+     * @param settingsValues the current settings values.
+     * @param suggestion the word to insert.
+     * @return the complete transaction object
+     */
+    public InputTransaction onPickSuggestion(final SettingsValues settingsValues,
+            final String suggestion) {
+        final InputTransaction inputTransaction = new InputTransaction(settingsValues);
+        final WordUtils.WordContext context = getWordContext();
+        if (context == null) {
+            return inputTransaction;
+        }
+        mConnection.beginBatchEdit();
+        if (mConnection.isConnected()) {
+            if (!context.mPartialWord.isEmpty()) {
+                mConnection.deleteTextBeforeCursor(context.mPartialWord.length());
+            }
+            final boolean addSpace =
+                    settingsValues.mInputAttributes.mShouldInsertSpacesAutomatically;
+            mConnection.commitText(addSpace ? suggestion + " " : suggestion, 1);
+        }
+        mConnection.endBatchEdit();
+        if (settingsValues.shouldLearnWords()) {
+            mLatinIME.mSuggestionController.learn(context.mPreviousWord, suggestion);
+        }
+        inputTransaction.requireShiftUpdate(InputTransaction.SHIFT_UPDATE_NOW);
+        return inputTransaction;
     }
 
     /**

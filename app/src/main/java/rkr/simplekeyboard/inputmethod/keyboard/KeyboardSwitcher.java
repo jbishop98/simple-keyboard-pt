@@ -37,6 +37,7 @@ import rkr.simplekeyboard.inputmethod.latin.LatinIME;
 import rkr.simplekeyboard.inputmethod.latin.RichInputMethodManager;
 import rkr.simplekeyboard.inputmethod.latin.settings.Settings;
 import rkr.simplekeyboard.inputmethod.latin.settings.SettingsValues;
+import rkr.simplekeyboard.inputmethod.latin.suggestions.SuggestionStripView;
 import rkr.simplekeyboard.inputmethod.latin.utils.CapsModeUtils;
 import rkr.simplekeyboard.inputmethod.latin.utils.LanguageOnSpacebarUtils;
 import rkr.simplekeyboard.inputmethod.latin.utils.RecapitalizeStatus;
@@ -46,6 +47,7 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
     private static final String TAG = KeyboardSwitcher.class.getSimpleName();
 
     private MainKeyboardView mKeyboardView;
+    private SuggestionStripView mSuggestionStripView;
     private LatinIME mLatinIME;
     private RichInputMethodManager mRichImm;
 
@@ -252,6 +254,11 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         final int visibility =  isImeSuppressedByHardwareKeyboard(settingsValues, toggleState)
                 ? View.GONE : View.VISIBLE;
         mKeyboardView.setVisibility(visibility);
+        if (mSuggestionStripView != null) {
+            mSuggestionStripView.setVisibility(
+                    settingsValues.mShowSuggestions ? visibility : View.GONE);
+            mSuggestionStripView.updateColors();
+        }
     }
 
     public enum KeyboardSwitchState {
@@ -352,6 +359,10 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
         return mKeyboardView;
     }
 
+    public SuggestionStripView getSuggestionStripView() {
+        return mSuggestionStripView;
+    }
+
     public MainKeyboardView getMainKeyboardView() {
         return mKeyboardView;
     }
@@ -375,6 +386,8 @@ public final class KeyboardSwitcher implements KeyboardState.SwitchActions {
 
         mKeyboardView = currentInputView.findViewById(R.id.keyboard_view);
         mKeyboardView.setKeyboardActionListener(mLatinIME);
+        mSuggestionStripView = currentInputView.findViewById(R.id.suggestion_strip_view);
+        mSuggestionStripView.setListener(mLatinIME);
         return currentInputView;
     }
 }

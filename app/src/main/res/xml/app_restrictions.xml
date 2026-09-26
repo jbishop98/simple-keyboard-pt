@@ -50,6 +50,17 @@
         android:title="@string/delete_swipe"
         android:restrictionType="bool"
         android:defaultValue="false" />
+    <!-- settings_screen_suggestions -->
+    <restriction
+        android:key="pref_show_suggestions"
+        android:title="@string/show_suggestions"
+        android:restrictionType="bool"
+        android:defaultValue="false" />
+    <restriction
+        android:key="pref_learn_words"
+        android:title="@string/learn_words"
+        android:restrictionType="bool"
+        android:defaultValue="true" />
     <!-- settings_screen_key_press -->
     <restriction
         android:key="vibrate_on"

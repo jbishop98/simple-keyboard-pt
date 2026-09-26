@@ -35,6 +35,8 @@ public final class InputAttributes {
     final public boolean mShouldShowSuggestions;
     final public boolean mApplicationSpecifiedCompletionOn;
     final public boolean mShouldInsertSpacesAutomatically;
+    /** The app asked not to learn from what is typed here, e.g. an incognito browser tab. */
+    final public boolean mNoPersonalizedLearning;
     /**
      * Whether the floating gesture preview should be disabled. If true, this should override the
      * corresponding keyboard settings preference, always suppressing the floating preview text.
@@ -48,6 +50,8 @@ public final class InputAttributes {
         mInputType = inputType;
         mIsPasswordField = InputTypeUtils.isPasswordInputType(inputType)
                 || InputTypeUtils.isVisiblePasswordInputType(inputType);
+        mNoPersonalizedLearning = null != editorInfo
+                && 0 != (editorInfo.imeOptions & EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING);
         if (inputClass != InputType.TYPE_CLASS_TEXT) {
             // If we are not looking at a TYPE_CLASS_TEXT field, the following strange
             // cases may arise, so we do a couple sanity checks for them. If it's a

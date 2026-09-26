@@ -49,6 +49,8 @@ public class SettingsValues {
     public final boolean mShowNumberRow;
     public final boolean mSpaceSwipeEnabled;
     public final boolean mDeleteSwipeEnabled;
+    public final boolean mShowSuggestions;
+    public final boolean mLearnWords;
 
     // From the input box
     public final InputAttributes mInputAttributes;
@@ -91,10 +93,27 @@ public class SettingsValues {
         mShowNumberRow = Settings.readShowNumberRow(prefs);
         mSpaceSwipeEnabled = Settings.readSpaceSwipeEnabled(prefs);
         mDeleteSwipeEnabled = Settings.readDeleteSwipeEnabled(prefs);
+        mShowSuggestions = Settings.readShowSuggestions(prefs);
+        mLearnWords = Settings.readLearnWords(prefs);
     }
 
     public boolean isWordSeparator(final int code) {
         return mSpacingAndPunctuations.isWordSeparator(code);
+    }
+
+    /**
+     * Whether suggestions should be offered in the current text field.
+     */
+    public boolean shouldOfferSuggestions() {
+        return mShowSuggestions && mInputAttributes.mShouldShowSuggestions;
+    }
+
+    /**
+     * Whether words typed in the current text field may be remembered.
+     */
+    public boolean shouldLearnWords() {
+        return shouldOfferSuggestions() && mLearnWords
+                && !mInputAttributes.mNoPersonalizedLearning;
     }
 
     public boolean isLanguageSwitchKeyDisabled() {
