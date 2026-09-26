@@ -257,6 +257,14 @@ public final class RichInputConnection {
         }
     }
 
+    public String getTextBeforeCursor() {
+        return mTextBeforeCursor;
+    }
+
+    public String getTextAfterCursor() {
+        return mTextAfterCursor;
+    }
+
     public CharSequence getSelectedText() {
         return mTextSelection;
     }

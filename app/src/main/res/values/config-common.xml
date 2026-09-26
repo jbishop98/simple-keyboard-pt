@@ -58,4 +58,8 @@
     <integer name="config_max_bottom_offset_portrait">100</integer>
     <integer name="config_min_bottom_offset_portrait">0</integer>
     <integer name="config_bottom_offset_step">1</integer>
+
+    <!-- Word suggestions -->
+    <dimen name="config_suggestion_strip_height">40dp</dimen>
+    <dimen name="config_suggestion_text_size">17sp</dimen>
 </resources>

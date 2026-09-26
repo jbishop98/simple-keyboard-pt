@@ -119,6 +119,39 @@
     <string name="show_number_row">Show separate number row</string>
     <string name="space_swipe">Space swipe cursor move</string>
     <string name="delete_swipe">Delete swipe</string>
+
+    <!-- Title of the settings screen for word suggestions -->
+    <string name="settings_screen_suggestions">Word suggestions</string>
+    <!-- Option to show word suggestions above the keyboard -->
+    <string name="show_suggestions">Show suggestions</string>
+    <!-- Description for the option to show word suggestions -->
+    <string name="show_suggestions_summary">Suggest words above the keyboard as you type. Works offline, on your device only.</string>
+    <!-- Option to learn new words and word pairs from typing -->
+    <string name="learn_words">Learn from typing</string>
+    <!-- Description for the option to learn words from typing -->
+    <string name="learn_words_summary">Remember words you use to improve suggestions and predict the next word. Never learns from password or incognito fields.</string>
+    <!-- Option to delete everything learned from typing -->
+    <string name="clear_learned_words">Clear learned words</string>
+    <!-- Confirmation question before deleting learned words -->
+    <string name="clear_learned_words_confirm">Delete all words the keyboard has learned from your typing?</string>
+    <!-- Message shown after learned words are deleted -->
+    <string name="learned_words_cleared">Learned words cleared</string>
+    <!-- Option to add a dictionary file for a language -->
+    <string name="import_dictionary">Import dictionary</string>
+    <!-- Description for the option to import a dictionary. English is included with the app. -->
+    <string name="import_dictionary_summary">Add a word list file for another language (plain text or AOSP wordlist, optionally .gz)</string>
+    <!-- Title of the dialog to pick which language a dictionary is for -->
+    <string name="import_dictionary_language">Dictionary language</string>
+    <!-- Message shown after a dictionary is imported. %1$d is the word count, %2$s the language -->
+    <string name="dictionary_imported">Imported %1$d words for %2$s</string>
+    <!-- Message shown when a dictionary file cannot be read -->
+    <string name="dictionary_import_failed">Could not read a word list from this file</string>
+    <!-- Option to delete all imported dictionaries -->
+    <string name="remove_imported_dictionaries">Remove imported dictionaries</string>
+    <!-- Message shown after imported dictionaries are deleted -->
+    <string name="imported_dictionaries_removed">Imported dictionaries removed</string>
+    <!-- Content description for a word suggestion button -->
+    <string name="suggestion_description">Suggestion: %s</string>
     <string name="setup_message">Simple Keyboard is not enabled. Click OK to open Languages &amp; Input settings. You will need to select Simple Keyboard in your current keyboard to use it.</string>
     <string name="user_languages">Enabled keyboard languages</string>
     <string name="add_language">Add language</string>

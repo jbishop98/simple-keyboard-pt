@@ -67,6 +67,8 @@ import rkr.simplekeyboard.inputmethod.latin.inputlogic.InputLogic;
 import rkr.simplekeyboard.inputmethod.latin.settings.Settings;
 import rkr.simplekeyboard.inputmethod.latin.settings.SettingsActivity;
 import rkr.simplekeyboard.inputmethod.latin.settings.SettingsValues;
+import rkr.simplekeyboard.inputmethod.latin.suggestions.SuggestionController;
+import rkr.simplekeyboard.inputmethod.latin.suggestions.SuggestionStripView;
 import rkr.simplekeyboard.inputmethod.latin.utils.ApplicationUtils;
 import rkr.simplekeyboard.inputmethod.latin.utils.LeakGuardHandlerWrapper;
 import rkr.simplekeyboard.inputmethod.latin.utils.ResourceUtils;
@@ -76,7 +78,7 @@ import rkr.simplekeyboard.inputmethod.latin.utils.ViewLayoutUtils;
  * Input method implementation for Qwerty'ish keyboard.
  */
 public class LatinIME extends InputMethodService implements KeyboardActionListener,
-        RichInputMethodManager.SubtypeChangedListener {
+        RichInputMethodManager.SubtypeChangedListener, SuggestionStripView.Listener {
     static final String TAG = LatinIME.class.getSimpleName();
     private static final boolean TRACE = false;
 
@@ -88,6 +90,7 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
     final Settings mSettings;
     private Locale mLocale;
     final InputLogic mInputLogic = new InputLogic(this /* LatinIME */);
+    public SuggestionController mSuggestionController;
 
     // TODO: Move these {@link View}s to {@link KeyboardSwitcher}.
     private View mInputView;
@@ -102,6 +105,7 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
     public static final class UIHandler extends LeakGuardHandlerWrapper<LatinIME> {
         private static final int MSG_UPDATE_SHIFT_STATE = 0;
         private static final int MSG_PENDING_IMS_CALLBACK = 1;
+        private static final int MSG_UPDATE_SUGGESTIONS = 2;
         private static final int MSG_DEALLOCATE_MEMORY = 9;
 
         public UIHandler(final LatinIME ownerInstance) {
@@ -119,6 +123,11 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
             case MSG_UPDATE_SHIFT_STATE:
                 switcher.requestUpdatingShiftState(latinIme.getCurrentAutoCapsState(),
                         latinIme.getCurrentRecapitalizeState());
+                // The text around the cursor may have just been reloaded.
+                latinIme.updateSuggestions();
+                break;
+            case MSG_UPDATE_SUGGESTIONS:
+                latinIme.updateSuggestions();
                 break;
             case MSG_DEALLOCATE_MEMORY:
                 latinIme.deallocateMemory();
@@ -129,6 +138,11 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
         public void postUpdateShiftState() {
             removeMessages(MSG_UPDATE_SHIFT_STATE);
             sendMessage(obtainMessage(MSG_UPDATE_SHIFT_STATE));
+        }
+
+        public void postUpdateSuggestions() {
+            removeMessages(MSG_UPDATE_SUGGESTIONS);
+            sendMessage(obtainMessage(MSG_UPDATE_SUGGESTIONS));
         }
 
         public void postDeallocateMemory() {
@@ -260,6 +274,8 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
         AudioAndHapticFeedbackManager.init(this);
         super.onCreate();
 
+        mSuggestionController = new SuggestionController(this, mHandler::postUpdateSuggestions);
+
         // TODO: Resolve mutual dependencies of {@link #loadSettings()} and
         // {@link #resetDictionaryFacilitatorIfNecessary()}.
         loadSettings();
@@ -281,6 +297,7 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
 
     @Override
     public void onDestroy() {
+        mSuggestionController.saveHistory();
         mSettings.onDestroy();
         unregisterReceiver(mRingerModeChangeReceiver);
         super.onDestroy();
@@ -362,6 +379,8 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
     public void onCurrentSubtypeChanged() {
         mInputLogic.onSubtypeChanged();
         loadKeyboard();
+        updateSuggestionLocale();
+        mHandler.postUpdateSuggestions();
     }
 
     void onStartInputInternal(final EditorInfo editorInfo, final boolean restarting) {
@@ -458,6 +477,8 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
             switcher.resetKeyboardStateToAlphabet(getCurrentAutoCapsState(),
                     getCurrentRecapitalizeState());
         }
+        updateSuggestionLocale();
+        mHandler.postUpdateSuggestions();
 
         if (TRACE) Debug.startMethodTracing("/data/trace/latinime");
     }
@@ -489,6 +510,7 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
 
     void onFinishInputViewInternal(final boolean finishingInput) {
         super.onFinishInputView(finishingInput);
+        mSuggestionController.saveHistory();
     }
 
     protected void deallocateMemory() {
@@ -548,7 +570,12 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
             outInsets.visibleTopInsets = inputHeight;
             return;
         }
-        final int visibleTopY = inputHeight - visibleKeyboardView.getHeight();
+        final View suggestionStripView = mKeyboardSwitcher.getSuggestionStripView();
+        final int suggestionStripHeight = suggestionStripView != null
+                && suggestionStripView.getVisibility() == View.VISIBLE
+                ? suggestionStripView.getHeight() : 0;
+        final int visibleTopY =
+                inputHeight - visibleKeyboardView.getHeight() - suggestionStripHeight;
         // Need to set expanded touchable region only if a keyboard view is being shown.
         if (visibleKeyboardView.isShown()) {
             final int touchLeft = 0;
@@ -740,6 +767,7 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
                 mInputLogic.onCodeInput(mSettings.getCurrent(), event);
         updateStateAfterInputTransaction(completeInputTransaction);
         mKeyboardSwitcher.onEvent(event, getCurrentAutoCapsState(), getCurrentRecapitalizeState());
+        mHandler.postUpdateSuggestions();
     }
 
     // A helper method to split the code point and the key code. Ultimately, they should not be
@@ -767,6 +795,7 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
                 mInputLogic.onTextInput(mSettings.getCurrent(), event);
         updateStateAfterInputTransaction(completeInputTransaction);
         mKeyboardSwitcher.onEvent(event, getCurrentAutoCapsState(), getCurrentRecapitalizeState());
+        mHandler.postUpdateSuggestions();
     }
 
     // Called from PointerTracker through the KeyboardActionListener interface
@@ -775,6 +804,48 @@ public class LatinIME extends InputMethodService implements KeyboardActionListen
         // User finished sliding input.
         mKeyboardSwitcher.onFinishSlidingInput(getCurrentAutoCapsState(),
                 getCurrentRecapitalizeState());
+    }
+
+    // Implements {@link SuggestionStripView.Listener}.
+    @Override
+    public void onPickSuggestion(final String word) {
+        final SuggestionStripView suggestionStripView = mKeyboardSwitcher.getSuggestionStripView();
+        final AudioAndHapticFeedbackManager feedbackManager =
+                AudioAndHapticFeedbackManager.getInstance();
+        feedbackManager.performHapticFeedback(suggestionStripView);
+        feedbackManager.performAudioFeedback(Constants.CODE_UNSPECIFIED);
+        final InputTransaction completeInputTransaction =
+                mInputLogic.onPickSuggestion(mSettings.getCurrent(), word);
+        updateStateAfterInputTransaction(completeInputTransaction);
+        mHandler.postUpdateSuggestions();
+    }
+
+    private void updateSuggestionLocale() {
+        if (mSettings.getCurrent().mShowSuggestions) {
+            final Subtype subtype = mRichImm.getCurrentSubtype();
+            mSuggestionController.setLocale(subtype.getLocale(), subtype.getLocaleObject());
+        }
+    }
+
+    /**
+     * Refreshes the suggestion strip for the text around the cursor.
+     */
+    void updateSuggestions() {
+        final SuggestionStripView suggestionStripView = mKeyboardSwitcher.getSuggestionStripView();
+        if (suggestionStripView == null || suggestionStripView.getVisibility() != View.VISIBLE) {
+            return;
+        }
+        final SettingsValues settingsValues = mSettings.getCurrent();
+        if (!settingsValues.shouldOfferSuggestions()) {
+            suggestionStripView.setSuggestions(null);
+            return;
+        }
+        final Keyboard keyboard = mKeyboardSwitcher.getKeyboard();
+        final boolean shifted = keyboard != null
+                && keyboard.mId.mElementId >= KeyboardId.ELEMENT_ALPHABET_MANUAL_SHIFTED
+                && keyboard.mId.mElementId <= KeyboardId.ELEMENT_ALPHABET_SHIFT_LOCKED;
+        suggestionStripView.setSuggestions(mSuggestionController.getSuggestions(
+                mInputLogic.getWordContext(), shifted));
     }
 
     private void loadKeyboard() {

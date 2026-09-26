@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Backup rules for Android 6 to 11. Learned words and imported dictionaries stay on the device. -->
+<full-backup-content>
+    <exclude domain="file" path="history/" />
+    <exclude domain="device_file" path="dicts/" />
+</full-backup-content>
